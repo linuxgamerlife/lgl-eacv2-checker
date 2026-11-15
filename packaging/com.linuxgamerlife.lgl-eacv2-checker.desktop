@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=LGL EAC v2 Checker
+Comment=Check Fedora boot-security prerequisites for Easy Anti-Cheat v2
+Exec=lgl-eacv2-checker
+Icon=lgl-eacv2-checker
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=Fedora;Secure Boot;TPM;EAC;gaming;
+StartupNotify=true

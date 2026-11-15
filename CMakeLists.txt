@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.20)
+project(lgl-eacv2-checker LANGUAGES C CXX)
+include(CTest)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+add_subdirectory(gtk)

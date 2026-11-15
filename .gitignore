@@ -1,0 +1,21 @@
+# CMake and local builds
+/build*/
+/cmake-build-*/
+/compile_commands.json
+/CMakeUserPresets.json
+/.cache/
+/Testing/
+
+# Packaging output
+/result/
+/*.rpm
+/*.src.rpm
+/*.tar.gz
+
+# Editors and operating systems
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+.DS_Store

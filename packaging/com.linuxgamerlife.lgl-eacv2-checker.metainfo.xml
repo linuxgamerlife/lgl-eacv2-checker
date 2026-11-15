@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.linuxgamerlife.lgl-eacv2-checker</id>
+  <name>LGL EAC v2 Checker</name>
+  <summary>Check Fedora boot-security prerequisites for Easy Anti-Cheat v2</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="com.linuxgamerlife">
+    <name>LinuxGamerLife</name>
+  </developer>
+  <description>
+    <p>Examines the current Fedora boot and reports detectable security
+    prerequisites associated with Easy Anti-Cheat Linux v2.</p>
+    <p>A passing report does not guarantee support from a game publisher.</p>
+  </description>
+  <launchable type="desktop-id">com.linuxgamerlife.lgl-eacv2-checker.desktop</launchable>
+  <content_rating type="oars-1.1"/>
+  <url type="homepage">https://github.com/linuxgamerlife/lgl-eacv2-checker</url>
+  <releases>
+    <release version="0.1.0" date="2026-11-15"/>
+  </releases>
+</component>
