@@ -1,6 +1,7 @@
 # CMake and local builds
 /build*/
 /cmake-build-*/
+/rpmbuild/
 /compile_commands.json
 /CMakeUserPresets.json
 /.cache/
