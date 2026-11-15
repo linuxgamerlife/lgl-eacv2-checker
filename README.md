@@ -117,26 +117,6 @@ implemented or independently confirmed.
 
 ---
 
-## Planned checks
-
-The following checks are planned but are not yet part of the beta result:
-
-- Secure Boot enabled state
-- UEFI Setup Mode disabled state
-- TPM presence and TPM 2.0 support
-- TPM measured boot event log availability
-- Kernel module signature enforcement
-- Loaded unsigned or out-of-tree kernel modules
-- Running Fedora kernel package and command-line review
-- GPU and relevant DKMS module detection
-- Sanitized diagnostic report export
-- Detailed TPM event log and boot-chain inspection
-
-Until these checks are implemented, the application must not be treated as a
-complete EAC v2 readiness assessment.
-
----
-
 ## Safety and privacy
 
 **Read-only operation.** The application reads selected files under `/etc`,
