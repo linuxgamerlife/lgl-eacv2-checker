@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="packaging/icons/256x256/lgl-eacv2-checker.png" width="128" alt="LGL EAC v2 Checker">
+
 # LGL EAC v2 Checker
 
 **Check detectable Fedora boot security requirements associated with Easy Anti-Cheat Linux v2.**
