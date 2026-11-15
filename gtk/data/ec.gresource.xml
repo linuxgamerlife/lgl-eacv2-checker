@@ -2,5 +2,6 @@
 <gresources>
   <gresource prefix="/com/linuxgamerlife/ec">
     <file>style.css</file>
+    <file>lgl-eacv2-checker.png</file>
   </gresource>
 </gresources>

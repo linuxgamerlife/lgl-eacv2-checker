@@ -81,7 +81,8 @@ Window::~Window() {
 void Window::build_header() {
     auto* brand = Gtk::make_managed<Gtk::Box>(Gtk::Orientation::HORIZONTAL, 10);
     brand->set_margin_end(12);
-    auto* icon = Gtk::make_managed<Gtk::Image>("security-high-symbolic");
+    auto* icon = Gtk::make_managed<Gtk::Image>();
+    icon->set_from_resource("/com/linuxgamerlife/ec/lgl-eacv2-checker.png");
     icon->set_pixel_size(28);
     icon->add_css_class("brand-icon");
     auto* wordmark = Gtk::make_managed<Gtk::Label>("LGL EAC V2 CHECKER");

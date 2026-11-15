@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(lgl-eacv2-checker VERSION 0.1.0 LANGUAGES C CXX)
 
+include(GNUInstallDirs)
+
 option(EAC_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 
 find_package(PkgConfig REQUIRED)
@@ -10,12 +12,15 @@ find_program(GLIB_COMPILE_RESOURCES glib-compile-resources REQUIRED)
 
 set(RESOURCE_XML ${CMAKE_CURRENT_SOURCE_DIR}/data/ec.gresource.xml)
 set(RESOURCE_C ${CMAKE_CURRENT_BINARY_DIR}/ec-resources.c)
+set(RESOURCE_DEPS
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/style.css
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/lgl-eacv2-checker.png)
 add_custom_command(
     OUTPUT ${RESOURCE_C}
     COMMAND ${GLIB_COMPILE_RESOURCES} ${RESOURCE_XML}
             --target=${RESOURCE_C} --generate-source
             --sourcedir=${CMAKE_CURRENT_SOURCE_DIR}/data
-    DEPENDS ${RESOURCE_XML} ${CMAKE_CURRENT_SOURCE_DIR}/data/style.css
+    DEPENDS ${RESOURCE_XML} ${RESOURCE_DEPS}
     VERBATIM)
 
 add_library(eac_core STATIC
@@ -69,10 +74,19 @@ if(BUILD_TESTING)
     endif()
 endif()
 
-install(TARGETS lgl-eacv2-checker RUNTIME DESTINATION bin)
+install(TARGETS lgl-eacv2-checker RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES
     ${CMAKE_SOURCE_DIR}/packaging/com.linuxgamerlife.lgl-eacv2-checker.desktop
-    DESTINATION share/applications)
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
 install(FILES
     ${CMAKE_SOURCE_DIR}/packaging/com.linuxgamerlife.lgl-eacv2-checker.metainfo.xml
-    DESTINATION share/metainfo)
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/metainfo)
+foreach(size IN ITEMS 48 64 128 256)
+    install(
+        FILES ${CMAKE_SOURCE_DIR}/packaging/icons/${size}x${size}/lgl-eacv2-checker.png
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/${size}x${size}/apps)
+endforeach()
+install(
+    FILES ${CMAKE_SOURCE_DIR}/README.md ${CMAKE_SOURCE_DIR}/CHANGELOG.md
+          ${CMAKE_SOURCE_DIR}/DESIGN.md
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/lgl-eacv2-checker)
