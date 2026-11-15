@@ -5,6 +5,7 @@
 #include <cctype>
 #include <iterator>
 #include <sstream>
+#include <string_view>
 #include <unordered_set>
 
 namespace ec {
@@ -28,6 +29,36 @@ std::unordered_set<std::string> parse_comma_separated_names(const std::string& v
         }
     }
     return names;
+}
+
+bool is_safe_kernel_release(const std::string& release) {
+    if (release.empty() || release.size() > 128U) {
+        return false;
+    }
+    return std::ranges::all_of(release, [](const unsigned char character) {
+        return std::isalnum(character) != 0 || character == '.' || character == '_' ||
+               character == '+' || character == '-';
+    });
+}
+
+std::vector<std::string> split(const std::string& value, const char delimiter) {
+    std::vector<std::string> fields;
+    std::istringstream input(value);
+    std::string field;
+    while (std::getline(input, field, delimiter)) {
+        fields.push_back(trim(std::move(field)));
+    }
+    return fields;
+}
+
+std::string command_error(const CommandOutput& output) {
+    if (!output.launch_error.empty()) {
+        return output.launch_error;
+    }
+    if (!trim(output.standard_error).empty()) {
+        return trim(output.standard_error);
+    }
+    return "The command exited with status " + std::to_string(output.exit_code) + ".";
 }
 
 CheckResult unavailable(std::string id, std::string title, std::string evidence,
@@ -99,6 +130,139 @@ CheckResult check_platform(const FileReader& files) {
     }
     return {"platform", "Fedora platform", CheckStatus::Pass, "Fedora " + version + " detected.",
             "Evidence: ID=fedora and VERSION_ID=" + version + " in /etc/os-release.", std::nullopt};
+}
+
+CheckResult check_kernel(const FileReader& files, const CommandRunner& commands) {
+    const auto release_contents = files.read("/proc/sys/kernel/osrelease");
+    if (!release_contents) {
+        return unavailable(
+            "kernel", "Fedora kernel", "The running kernel release was unavailable.",
+            "Run the commands below as your normal user. If uname works but the proc file is "
+            "missing, confirm that /proc is mounted. Running this app as root will not repair a "
+            "missing proc filesystem.",
+            {{"Show the running kernel release", "uname -r"},
+             {"Confirm that /proc is available", "mountpoint /proc"},
+             {"Read the kernel release from /proc", "cat /proc/sys/kernel/osrelease"}});
+    }
+
+    const auto release = trim(*release_contents);
+    if (!is_safe_kernel_release(release)) {
+        return unavailable(
+            "kernel", "Fedora kernel", "The running kernel release was malformed.",
+            "Use the commands below to inspect the running kernel. Do not rename files under "
+            "/usr/lib/modules. Restart into a normal Fedora kernel if the release name is damaged "
+            "or unexpected.",
+            {{"Show the running kernel release", "uname -r"},
+             {"List installed kernel module folders", "ls -1 /usr/lib/modules"}});
+    }
+
+    const auto image = files.resolve(std::filesystem::path{"/usr/lib/modules"} / release / "vmlinuz");
+    if (!files.exists(std::filesystem::path{"/usr/lib/modules"} / release / "vmlinuz")) {
+        return unavailable(
+            "kernel", "Fedora kernel",
+            "Running kernel: " + release + "\nExpected image not found: " + image.string(),
+            "The running kernel does not have an image at Fedora's standard installed location. "
+            "This can happen with a custom kernel, a removed kernel package, or a damaged "
+            "installation.\n\n"
+            "Restart and choose the newest normal Fedora kernel. If no normal entry is available, "
+            "install Fedora's standard kernel package, restart, and check again.",
+            {{"Show the running kernel release", "uname -r"},
+             {"List installed Fedora kernel packages", "rpm -q kernel-core"},
+             {"Install Fedora's standard kernel package", "sudo dnf install kernel-core"}});
+    }
+
+    const auto ownership = commands.run(
+        {"/usr/bin/rpm", "-qf", "--qf", "%{NAME}|%{NEVRA}|%{VENDOR}\\n", image.string()});
+    if (ownership.exit_code != 0) {
+        return unavailable(
+            "kernel", "Fedora kernel",
+            "Running kernel: " + release + "\nRPM ownership query failed: " +
+                command_error(ownership),
+            "RPM could not establish which package owns the running kernel image. Do not claim "
+            "ownership by editing RPM data. Use the commands below to inspect the image and RPM "
+            "database, then repair the installed kernel package if necessary.",
+            {{"Show the running kernel image",
+              "ls -l \"/usr/lib/modules/$(uname -r)/vmlinuz\""},
+             {"Show which package owns the running kernel image",
+              "rpm -qf \"/usr/lib/modules/$(uname -r)/vmlinuz\""},
+             {"List installed Fedora kernel packages", "rpm -q kernel-core"}});
+    }
+
+    const auto fields = split(ownership.standard_output, '|');
+    if (fields.size() != 3U || fields[0].empty() || fields[1].empty() || fields[2].empty()) {
+        return unavailable(
+            "kernel", "Fedora kernel",
+            "Running kernel: " + release + "\nRPM returned malformed ownership information.",
+            "Use the commands below to inspect the package metadata. Do not edit the RPM database "
+            "or kernel files manually.",
+            {{"Show which package owns the running kernel image",
+              "rpm -qf \"/usr/lib/modules/$(uname -r)/vmlinuz\""},
+             {"Show the package vendor",
+              "rpm -q --qf '%{NAME}: %{VENDOR}\\n' "
+              "\"$(rpm -qf /usr/lib/modules/$(uname -r)/vmlinuz)\""}});
+    }
+
+    const auto& package_name = fields[0];
+    const auto& package_nevra = fields[1];
+    const auto& vendor = fields[2];
+    const std::string package_evidence = "Running kernel: " + release + "\nOwning package: " +
+                                         package_nevra + "\nPackage vendor: " + vendor;
+    if (package_name != "kernel-core" || vendor != "Fedora Project") {
+        return {"kernel",
+                "Fedora kernel",
+                CheckStatus::Warning,
+                "The running kernel is not the standard Fedora kernel package.",
+                package_evidence,
+                "This does not prove that the kernel is incompatible, but this checker cannot "
+                "treat a custom, debug, or third-party kernel as equivalent to Fedora's standard "
+                "kernel-core package.\n\n"
+                "Install Fedora's standard kernel package, restart, choose the newest normal "
+                "Fedora entry, and run the checker again. Keep the current kernel installed until "
+                "you have confirmed that the Fedora kernel starts correctly.",
+                {{"List installed Fedora kernel packages", "rpm -q kernel-core"},
+                 {"Install Fedora's standard kernel package", "sudo dnf install kernel-core"},
+                 {"Show the running kernel after restart", "uname -r"}}};
+    }
+
+    const auto verification = commands.run({"/usr/bin/rpm", "-V", package_nevra});
+    const auto verification_output = trim(verification.standard_output);
+    if (!verification_output.empty()) {
+        return {"kernel",
+                "Fedora kernel",
+                CheckStatus::Fail,
+                "RPM reports changed or missing files in the running kernel package.",
+                package_evidence + "\nRPM verification output:\n" + verification_output,
+                "Do not repair kernel files manually. Reinstall the exact package shown below, "
+                "restart into the newest normal Fedora kernel, and run the checker again.\n\n"
+                "Reinstalling a kernel package changes boot files. Keep current backups and do not "
+                "interrupt the package operation.",
+                {{"Reinstall the running kernel package",
+                  "sudo dnf reinstall \"$(rpm -qf /usr/lib/modules/$(uname -r)/vmlinuz)\""},
+                 {"Restart Fedora", "systemctl reboot"},
+                 {"Verify the running package after restart",
+                  "rpm -V \"$(rpm -qf /usr/lib/modules/$(uname -r)/vmlinuz)\""}}};
+    }
+    if (verification.exit_code != 0) {
+        return unavailable(
+            "kernel", "Fedora kernel",
+            package_evidence + "\nRPM verification failed: " + command_error(verification),
+            "RPM identified a standard Fedora kernel package but could not verify it. Run the "
+            "commands below as your normal user. If verification continues to fail without "
+            "listing changed files, repair the RPM database before relying on this result.",
+            {{"Verify the running kernel package",
+              "rpm -V \"$(rpm -qf /usr/lib/modules/$(uname -r)/vmlinuz)\""},
+             {"Check the RPM database", "sudo rpm --verifydb"}});
+    }
+
+    return {"kernel",
+            "Fedora kernel",
+            CheckStatus::Pass,
+            "The running kernel is from Fedora's standard kernel package.",
+            package_evidence +
+                "\nRPM verification reported no changed or missing packaged files.\n"
+                "This confirms package provenance and file integrity only. It does not prove that "
+                "Epic trusts this kernel or that an EAC v2 game will launch.",
+            std::nullopt};
 }
 
 CheckResult check_uefi(const FileReader& files) {
@@ -348,16 +512,23 @@ CheckResult check_iommu(const FileReader& files) {
               "sudo grubby --update-kernel=ALL --args=\"amd_iommu=on\""}}};
 }
 
-std::vector<CheckResult> run_initial_checks(const FileReader& files) {
+std::vector<CheckResult> run_initial_checks(const FileReader& files,
+                                            const CommandRunner& commands) {
     std::vector<CheckResult> results;
-    results.reserve(6);
+    results.reserve(7);
     results.push_back(check_platform(files));
+    results.push_back(check_kernel(files, commands));
     results.push_back(check_uefi(files));
     results.push_back(check_lockdown(files));
     results.push_back(check_kexec(files));
     results.push_back(check_iommu(files));
     results.push_back(check_lsms(files));
     return results;
+}
+
+std::vector<CheckResult> run_initial_checks(const FileReader& files) {
+    const SystemCommandRunner commands;
+    return run_initial_checks(files, commands);
 }
 
 } // namespace ec

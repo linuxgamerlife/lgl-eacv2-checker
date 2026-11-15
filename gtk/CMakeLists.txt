@@ -26,6 +26,7 @@ add_custom_command(
 add_library(eac_core STATIC
     src/core/check_result.cpp
     src/core/checks.cpp
+    src/core/command_runner.cpp
     src/core/file_reader.cpp
     src/core/settings.cpp
     src/core/theme.cpp)

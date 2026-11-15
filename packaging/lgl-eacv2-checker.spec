@@ -20,6 +20,7 @@ BuildRequires:  appstream
 BuildRequires:  xorg-x11-server-Xvfb
 
 Requires:       hicolor-icon-theme
+Requires:       rpm
 
 %description
 LGL EAC v2 Checker is a read-only GTK diagnostic application for Fedora. It
@@ -56,5 +57,5 @@ appstreamcli validate --no-net %{buildroot}%{_datadir}/metainfo/com.linuxgamerli
 %changelog
 * Sun Nov 15 2026 LinuxGamerLife - 0.1.0-1
 - Initial beta release
-- Add read-only Fedora, UEFI, lockdown, kexec, IOMMU, and LSM checks
+- Add read-only Fedora, kernel provenance, UEFI, lockdown, kexec, IOMMU, and LSM checks
 - Add guided remediation, startup risk acknowledgement, and GTK interface

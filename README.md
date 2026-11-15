@@ -90,6 +90,7 @@ The source code and issue tracker are available at
 | Check | What it examines |
 |---|---|
 | **Fedora platform** | Reads `/etc/os-release` and confirms that the current system identifies itself as Fedora with a version |
+| **Fedora kernel** | Confirms that the running kernel image belongs to Fedora's standard `kernel-core` package and that RPM reports no changed or missing packaged files |
 | **UEFI boot** | Confirms that the current session was started through UEFI by checking `/sys/firmware/efi` |
 | **Kernel lockdown** | Confirms that the running kernel selected lockdown integrity mode |
 | **Kexec loading** | Confirms that `kernel.kexec_load_disabled` is set to `1` |
@@ -122,8 +123,9 @@ implemented or independently confirmed.
 ## Safety and privacy
 
 **Read-only operation.** The application reads selected files under `/etc`,
-`/proc`, and `/sys`. It does not edit them. It does not install packages,
-change boot settings, or run a privileged helper.
+`/proc`, `/sys`, and `/usr/lib/modules`, and uses RPM only to query and verify
+the installed kernel package. It does not edit files, install packages, change
+boot settings, or run a privileged helper.
 
 **User-controlled commands.** Remediation commands are displayed as text. The
 application never runs them. Commands that use `sudo` execute only if the user
@@ -149,6 +151,7 @@ backups and Fedora recovery media before making those changes.
 - Fedora does not provide CachyOS packages such as `eac-setup` or `eac-status`.
 - Fedora's kernel, bootloader, signing chain, and LSM names may differ from the
   CachyOS examples.
+- Fedora kernel package provenance does not prove that Epic trusts the kernel.
 - No EAC Linux v2 title is currently available for an end-to-end launch test.
 - The application cannot determine Epic's private trust decisions.
 - Firmware interfaces and kernel evidence vary across hardware.

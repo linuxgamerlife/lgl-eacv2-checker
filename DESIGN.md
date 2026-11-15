@@ -9,13 +9,15 @@ compatibility.
 
 ## Assets and trust boundaries
 
-- Untrusted system input: selected files below `/etc`, `/proc`, and `/sys`.
+- Untrusted system input: selected files below `/etc`, `/proc`, `/sys`, and
+  `/usr/lib/modules`, plus bounded output from read-only RPM queries.
 - UI boundary: check results are immutable values handed from a worker thread
   to the GTK main thread.
 - User data: one boolean preference under
   `$XDG_CONFIG_HOME/lgl-eacv2-checker/settings.ini`.
-- No network connection, privileged helper, package operation, or shell command
-  is part of the initial design.
+- No network connection, privileged helper, package modification, or shell
+  command is part of the design. RPM is executed directly without a shell only
+  to query ownership and verify installed package files.
 
 System files may disappear, be inaccessible, be unusually large, or contain
 malformed data. Reads are size-capped, parsing is defensive, and unavailable or

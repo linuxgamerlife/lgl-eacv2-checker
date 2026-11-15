@@ -8,4 +8,5 @@
 - Add evidence, plain language remediation, labelled copyable commands, and a
   startup beta warning.
 - Add fixture-based core tests and a GTK lifecycle smoke test.
+- Check that the running kernel is an unmodified Fedora `kernel-core` package.
 - Add Fedora RPM and COPR packaging.
